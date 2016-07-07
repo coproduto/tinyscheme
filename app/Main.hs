@@ -21,7 +21,10 @@ readExpr :: String -> String
 readExpr input = 
     case parse parseExpr "lisp" input of
       Left err -> "No match: " ++ show err
-      Right val -> "Found value: " ++ show val
+      Right val -> 
+          case val of
+            LispString x -> "Found value: " ++ "LispString " ++ x
+            _            -> "Found value: " ++ show val
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
@@ -31,9 +34,9 @@ parseExpr = parseAtom
 parseString :: Parser LispVal
 parseString = do
   char '"'
-  x <- many (noneOf "\"")
+  x <- many (many1 nonEscape <|> escapeSequence)
   char '"'
-  return $ LispString x
+  return $ LispString (concat x)
 
 parseAtom :: Parser LispVal
 parseAtom = do
@@ -49,6 +52,15 @@ parseNumber :: Parser LispVal
 parseNumber = do
   digits <- many1 digit
   return $ (LispNumber . read) digits
+
+nonEscape :: Parser Char
+nonEscape = noneOf "\\\""
+
+escapeSequence :: Parser String
+escapeSequence = do
+    slash <- char '\\' 
+    char <- oneOf "\\\""
+    return [slash, char]
 
 symbol :: Parser Char
 symbol = 
