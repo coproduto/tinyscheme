@@ -34,9 +34,9 @@ parseExpr = parseAtom
 parseString :: Parser LispVal
 parseString = do
   char '"'
-  x <- many (many1 nonEscape <|> escapeSequence)
+  x <- many (nonEscape <|> escapeSequence)
   char '"'
-  return $ LispString (concat x)
+  return $ LispString x
 
 parseAtom :: Parser LispVal
 parseAtom = do
@@ -56,11 +56,16 @@ parseNumber = do
 nonEscape :: Parser Char
 nonEscape = noneOf "\\\""
 
-escapeSequence :: Parser String
+escapeSequence :: Parser Char
 escapeSequence = do
-    slash <- char '\\' 
-    char <- oneOf "\\\""
-    return [slash, char]
+    slash <- char '\\'
+    char <- oneOf escapeChars
+    return $ case char of
+               '"'  -> '"'
+               'n'  -> '\n'
+               't'  -> '\t'
+               'r'  -> '\r'
+               '\\' -> '\\'
 
 symbol :: Parser Char
 symbol = 
@@ -69,3 +74,6 @@ symbol =
 spaces :: Parser ()
 spaces = 
     skipMany1 space
+
+escapeChars :: [Char]
+escapeChars = "nrt\\\""
